@@ -4,4 +4,4 @@ This repo is a companion for a [medium article](https://medium.com) (proper link
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ovsienkobohdan/pqstpeak-detection/blob/main/pt_detection.ipynb)
 
-The goal of the "PQRST peaks detection" project is to build a simple algorithm to detect P, Q, S, T points based on lead-1 ECG and annotated R-peaks. R peaks can be easily and accurately detected by known Pan-Tompkins algorithm. Q and S peaks are simply minimums in 60 milliseconds around R [R-60ms, R+60ms] so it's also not the main point of this project. The main point of this project is P and T detection.
+The goal of the "PQST peaks detection" project is to build a simple algorithm to detect P, Q, S, T points based on lead-1 ECG and annotated R-peaks. R peaks can be easily and accurately detected by known Pan-Tompkins algorithm. Q and S peaks are simply minimums in 60 milliseconds around R [R-60ms, R+60ms] so it's also not the main point of this project. The main point of this project is P and T detection.
