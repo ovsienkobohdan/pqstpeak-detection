@@ -8,8 +8,8 @@ The goal of the "PQST peaks detection" project is to build a simple algorithm to
 
 ## Python code for ease use will be added soon:
 - [x] Add a simple Jupyter notebook
-- [ ] Write dataset preparation script
-- [ ] Save a clean dataset
+- [x] Write dataset preparation script
+- [x] Save a clean dataset
 - [ ] Write a class for PT detection
 - [ ] Write a class for QS peak detection
 - [ ] Combine classes to ECG peaks annotation
