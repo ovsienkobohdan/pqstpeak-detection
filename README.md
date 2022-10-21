@@ -10,6 +10,9 @@ The goal of the "PQST peaks detection" project is to build a simple algorithm to
 - [x] Add a simple Jupyter notebook
 - [x] Write dataset preparation script
 - [x] Save a clean dataset
+- [ ] Write a script to get scores on manual and auto peak detection 
 - [ ] Write a class for PT detection
+- [ ] Save PT Detections to a file
+- [ ] Write a script to get scores on PT deteciton algorithms
 - [ ] Write a class for QS peak detection
 - [ ] Combine classes to ECG peaks annotation
