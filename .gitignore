@@ -3,3 +3,6 @@ __pycache__/
 
 # QTDB dataset
 physionet.org/
+
+# Data files
+data/*.csv
