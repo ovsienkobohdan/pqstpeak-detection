@@ -10,9 +10,13 @@ The goal of the "PQST peaks detection" project is to build a simple algorithm to
 - [x] Add a simple Jupyter notebook
 - [x] Write dataset preparation script
 - [x] Save a clean dataset
-- [ ] Write a script to get scores on manual and auto peak detection 
-- [ ] Write a class for PT detection
-- [ ] Save PT Detections to a file
-- [ ] Write a script to get scores on PT deteciton algorithms
-- [ ] Write a class for QS peak detection
-- [ ] Combine classes to ECG peaks annotation
+- [x] Write a script to get scores on manual and auto peak detection 
+- [x] Write a class for PT detection
+- [x] Save PT Detections to a file
+- [x] Write a script to get scores on PT deteciton algorithms
+- [x] Write a class for QS peak detection
+- [x] Combine classes to ECG peaks annotation
+- [x] ISSUE: Compare Annotation from jupyter and script (scores are not maching) (R peaks detection is wrong or PT Detection?)
+- [x] Window PT peak detection with adaptive ab
+- [ ] Adaptive AB
+- [ ] Regression adaptive

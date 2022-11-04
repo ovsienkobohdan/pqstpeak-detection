@@ -51,7 +51,7 @@ def dataset_prep(symbols, samples):
 
 def save_qtdb_tocsv(db_list):
     db = pd.DataFrame({'File': db_list[0], 'Record': db_list[1], "True Peaks": db_list[2], "Auto Peaks": db_list[3]})
-    db.to_csv("data/qtdb.csv")
+    db.to_csv("data/qtdb.csv", index=False)
 
 
 input_files = []
@@ -72,7 +72,7 @@ for temp_file_index, temp_file in enumerate(input_files):
 
     true_peaks_all.append(true_peaks)
     true_peaks_all_auto.append(true_peaks_auto)
-    records_all.append(record.p_signal)
+    records_all.append(record.p_signal.reshape(-1).tolist())
     file_id.append(temp_file)
 
 save_qtdb_tocsv([file_id, records_all, true_peaks_all, true_peaks_all_auto])

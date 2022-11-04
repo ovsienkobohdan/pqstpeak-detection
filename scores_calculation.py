@@ -1,43 +1,13 @@
+from matplotlib.pyplot import annotate
 import numpy as np
 import pandas as pd
 from sklearn.metrics import mean_absolute_error
 
-def sync_peaks(prt_peaks, peaks, print_misssing=False):
-    window_ind = []
-    ind = []
-    find_j = -2
+from utils import strlist_to_list, sync_peaks_all_records
 
-    for i in range(1, len(peaks),3):
-        find = False
-        j = find_j + 3
-        while not find and j <= len(prt_peaks)-2:
-            if abs(peaks[i] - prt_peaks[j]) < 20:
-                window_ind += [prt_peaks[j-1], prt_peaks[j], prt_peaks[j+1]]
-                ind += [peaks[i-1], peaks[i], peaks[i+1]]
-                find_j = j
-                find = True
-            else: 
-                j += 3
-    drops = len(peaks) - len(ind)
-    if drops > 0 and print_misssing:
-        print(f"When syncing missed values was found: {drops} ({drops*100/len(peaks)}%)")
-    return ind, window_ind
-
-def sync_peaks_all_records(prt_peaks, peaks):
-    synced_peaks = list(map(sync_peaks, prt_peaks, peaks))
-    return [i[0] for i in synced_peaks], [i[1] for i in synced_peaks]
 
 def flatten(l):
     return [item for sublist in l for item in sublist]
-
-def strlist_to_list(strl):
-    full_str = []
-    for i in strl:
-        if i == "[]":
-            full_str.append([])
-        else:
-            full_str.append([int(j) for j in i[1:-1].split(",")])
-    return full_str
 
 def group_tp_peaks(peaks):
     peaks_p = [val for i,val in enumerate(peaks) if i%3 == 0]
@@ -62,15 +32,25 @@ def calc_scores(true_peaks, auto_peaks, desc):
     peaks_p_all, peaks_t_all = pt_peaks_all_records(true_p)
     peaks_p_auto_all, peaks_t_auto_all = pt_peaks_all_records(true_p_auto)
 
-    print(f"MAE score for {desc} p peaks:  {mean_absolute_error(peaks_p_all, peaks_p_auto_all)}")
-    print(f"MAE score for {desc} t peaks:  {mean_absolute_error(peaks_t_all, peaks_t_auto_all)}")
+    print(f"MAE score for {desc} p peaks:  {round(mean_absolute_error(peaks_p_all, peaks_p_auto_all),2)}")
+    print(f"MAE score for {desc} t peaks:  {round(mean_absolute_error(peaks_t_all, peaks_t_auto_all),2)}")
 
     print(f"Accuracy for {desc} p peaks: {accuracy(peaks_p_all, peaks_p_auto_all)}%")
     print(f"Accuracy for {desc} t peaks: {accuracy(peaks_t_all, peaks_t_auto_all)}%")
 
 
-# Comparing manual and auto detection from dataset
+# # Comparing manual and auto detection from dataset
 dataset = pd.read_csv('data/qtdb.csv')
 true_peaks = strlist_to_list(dataset["True Peaks"])
-auto_peaks = strlist_to_list(dataset["Auto Peaks"])
-calc_scores(true_peaks, auto_peaks, desc="dataset's automatically determined waveform boundary measurements")
+# auto_peaks = strlist_to_list(dataset["Auto Peaks"])
+# calc_scores(true_peaks, auto_peaks, desc="dataset's automatically determined waveform boundary measurements")
+
+# # Comparing manual and windowed pt annotation
+# annotated_dataset = pd.read_csv('data/qtdb_annotations.csv')
+# auto_peaks = strlist_to_list(annotated_dataset["Windowed Peaks"])
+# calc_scores(true_peaks, auto_peaks, desc="window algorithm")
+
+# Comparing manual and windowed pt annotation with adaptive ab
+annotated_dataset = pd.read_csv('data/qtdb_annotations.csv')
+auto_peaks = strlist_to_list(annotated_dataset["Windowed AB Peaks"])
+calc_scores(true_peaks, auto_peaks, desc="window method with best alpha/beta")
