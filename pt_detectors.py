@@ -1,19 +1,21 @@
 from abc import ABC, abstractmethod
+import joblib
 
 import numpy as np
 from sklearn.metrics import mean_absolute_error
+from biosppy.signals import ecg
 
-from qrs_detectors import r_peaks_detection
 from pqrst_detection import pqrst_detection
-from utils import sync_peaks
+from utils import sync_peaks, get_heart_rate
 
 class PTPeakDetection(ABC):
     """
     Base class for PT peaks detection on ECG signal. 
     """
-    def __init__(self, signal: list, r_peaks: list) -> None:
+    def __init__(self, signal: list, r_peaks: list, sampling_rate: float) -> None:
         self.signal = signal
         self.r_peaks = r_peaks
+        self.samp_rate = sampling_rate
     
     def get_rpeaks(self) -> list:
         return self.r_peaks
@@ -28,18 +30,23 @@ class WindowedPTDetection(PTPeakDetection):
     """
     Class for Windowed pt detection
     """
-    def __init__(self, signal: str, r_peaks: str, 
+    def __init__(self, signal: str, r_peaks: str, sampling_rate: float,
                  alpha=0, beta=0, coef=1) -> None:
-        super().__init__(signal, r_peaks)
+        super().__init__(signal, r_peaks, sampling_rate)
         self.alpha = alpha
         self.beta = beta
         self.coef = coef
+        self.model = None
     
+    def init_model(self, model_path):
+        self.model = joblib.load(model_path)
+
     def calc_best_params(self, true_peaks: list, a_values=[1,2,3], b_values=[1,2,3]):
         maes_peak = []
         for ind, alpha in enumerate(a_values):
             
-            peaks = pqrst_detection(self.signal, WindowedPTDetection(self.signal, self.r_peaks, alpha=alpha), qs_drop=True)
+            peaks = pqrst_detection(self.signal, WindowedPTDetection(self.signal, self.r_peaks, 
+                                    self.samp_rate, alpha=alpha), qs_drop=True)
             true_peaks, peaks = sync_peaks(peaks, true_peaks)
 
             peaks_t = [val for i,val in enumerate(true_peaks) if (i-2)%3 == 0]
@@ -52,7 +59,8 @@ class WindowedPTDetection(PTPeakDetection):
 
         maes_peak = []
         for ind, beta in enumerate(b_values):
-            peaks = pqrst_detection(self.signal, WindowedPTDetection(self.signal, self.r_peaks, beta=beta), qs_drop=True)
+            peaks = pqrst_detection(self.signal, WindowedPTDetection(self.signal, self.r_peaks,
+                                    self.samp_rate, beta=beta), qs_drop=True)
             true_peaks, peaks = sync_peaks(peaks, true_peaks)
 
             peaks_p = [val for i,val in enumerate(true_peaks) if i%3 == 0]
@@ -63,79 +71,67 @@ class WindowedPTDetection(PTPeakDetection):
         
         self.beta = b_values[np.argmin(maes_peak)] if len(maes_peak) > 0 else 1
 
-    def detect(self):
-        self.p_min, self.p_max = -20, (-40 - self.beta) * self.coef
-        self.t_min, self.t_max = 20, (50 + self.alpha) * self.coef
-        pt_peaks = []
-        for r_peak in self.r_peaks:
-            if r_peak + self.p_max >= 0:
-                p_signal_slice = self.signal[int(r_peak + self.p_max):int(r_peak + self.p_min)]
-                p_peak = np.argmax(p_signal_slice, axis=0) + r_peak + self.p_max
-                pt_peaks.append(int(p_peak))
-            if r_peak + self.t_max <= len(self.signal):
-                t_signal_slice = self.signal[int(r_peak+self.t_min):int(r_peak+self.t_max)]
-                t_peak = np.argmax(t_signal_slice, axis=0) + r_peak + self.t_min
-                pt_peaks.append(int(t_peak))
-        return pt_peaks
-
-
-#   mae_t = []
-#   if len(true_peaks) > 3:
-#     l_range = 0
-#     r_range = len(record.p_signal)+1
-
-#     data_slice = np.ndarray.flatten(record.p_signal[l_range:r_range])
-#     for index, alpha in enumerate(alpha_list):
-#       true_peaks, true_symbols = dataset_prep(record_atr.symbol, record_atr.sample)
-#       peaks = pqrst_detection(data_slice,qs_drop=True, alpha=alpha)
-#       true_peaks, peaks = sync_peaks(peaks, true_peaks)
-#       peaks_t = [val for i,val in enumerate(true_peaks) if (i-2)%3 == 0]
-
-#       window_peaks_t = [val for i,val in enumerate(peaks) if (i-2)%3 == 0]
-
-#       mae_t.append(mean_absolute_error(peaks_t, window_peaks_t))
-
-#     alpha = alpha_list[np.argmin(mae_t)]
-
-#     mae_p = []
-
-#     true_peaks, true_symbols = dataset_prep(record_atr.symbol, record_atr.sample)
-
-#     for index, beta in enumerate(beta_list):
-#       peaks = pqrst_detection(data_slice,qs_drop=True, beta=beta )
-#       true_peaks, peaks = sync_peaks(peaks, true_peaks)
-
-#       peaks_p = [val for i,val in enumerate(true_peaks) if i%3 == 0]
-
-#       window_peaks_p = [val for i,val in enumerate(peaks) if i%3 == 0]
-#       if len(window_peaks_p) > 1:
-#         mae_p.append(mean_absolute_error(peaks_p, window_peaks_p))
-
-#     beta = beta_list[np.argmin(mae_p)]
-
-# class WindowedABAdaptivePTDetection(WindowedPTDetection):
-#     """
-#     Class for Windowed pt detection with adaptive ab coef
-#     """
-#     def __init__(self, signal: str, r_peaks: str, 
-#                  alphas_list: list, betas_list: list, coef=1) -> None:
-#         super().__init__(signal, r_peaks, alpha=-1, beta=-1, coef=coef)
-#         self.betas = betas_list
-#         self.alphas = alphas_list
+    def calc_adaptive_coef(self):
+        _, self.hrs = get_heart_rate(self.r_peaks)
+        self.mean_hr = np.mean(self.hrs)
+        self.coef = [hr / self.mean_hr for hr in self.hrs]
     
-#     def calc_best_param(self, param="a"):
-#         if param="a":
-#             param_values = self.alphas
-#             targ_peak = "t"
-#         elif param="b":
-#             param_values = self.betas
-#             targ_peak ="p"
-#         else: raise ValueError("wrong value for a param (a or b)")
+    def init_regr_model(self, model):
+        self.model = model
+    
+    def detect(self):
+        if type(self.coef) is list:
+            pt_peaks = []
+            for i, c in enumerate(self.coef):
+                p_min = -20
+                if self.model is not None:
+                    p_max = int((-40 - self.model.predict(np.array(self.hrs[i]).reshape(-1,1))) * c)
+                else:
+                    p_max = int((-40 - self.beta) * c)
+                t_min = 20
+                t_max = int((50 + self.alpha) * c)
 
-#         mae_peaks = []
-#         for ind, param in enumerate(param_values):
+                if i == 0 and self.r_peaks[i] + p_max >= 0 :
+                    p_min = -20
+                    if self.model is not None:
+                        p_max = (-40 - self.model.predict(np.array(self.mean_hr).reshape(-1,1)))
+                    else: 
+                        p_max = (-40 - self.beta)
+                    t_min = 20
+                    t_max = (50 + self.alpha)
+                    p_signal_slice = self.signal[int(self.r_peaks[i] + p_max):int(self.r_peaks[i] + p_min)]
+                    if len(p_signal_slice) > 1:
+                        p_peak = np.argmax(p_signal_slice, axis=0) + self.r_peaks[i] + p_max
+                        pt_peaks.append(int(p_peak))
 
-#     def detect(self):
-#         super().detect(self)
-#         return pt_peaks
+                p_signal_slice = self.signal[int(self.r_peaks[i+1] + p_max):int(self.r_peaks[i+1] + p_min)]
+                if len(p_signal_slice) > 1:
+                    p_peak = np.argmax(p_signal_slice, axis=0) + self.r_peaks[i+1] + p_max
+                    pt_peaks.append(int(p_peak))
+                t_signal_slice = self.signal[int(self.r_peaks[i]+t_min):int(self.r_peaks[i]+t_max)]
+                if len(t_signal_slice) > 1:  
+                    t_peak = np.argmax(t_signal_slice, axis=0) + self.r_peaks[i] + t_min
+                    pt_peaks.append(int(t_peak))
 
+            p_min = -20
+            p_max = (-40 - self.beta)
+            t_min = 20
+            t_max = (50 + self.alpha)
+            if self.r_peaks[len(self.r_peaks)-1] + t_max <= len(self.signal):
+                t_signal_slice = self.signal[int(self.r_peaks[len(self.r_peaks)-1]+t_min):int(self.r_peaks[len(self.r_peaks)-1]+t_max)]
+                t_peak = np.argmax(t_signal_slice, axis=0) + self.r_peaks[len(self.r_peaks)-1] + t_min
+                pt_peaks.append(t_peak)
+        else:
+            self.p_min, self.p_max = -20, (-40 - self.beta) * self.coef
+            self.t_min, self.t_max = 20, (50 + self.alpha) * self.coef
+            pt_peaks = []
+            for r_peak in self.r_peaks:
+                if r_peak + self.p_max >= 0:
+                    p_signal_slice = self.signal[int(r_peak + self.p_max):int(r_peak + self.p_min)]
+                    p_peak = np.argmax(p_signal_slice, axis=0) + r_peak + self.p_max
+                    pt_peaks.append(int(p_peak))
+                if r_peak + self.t_max <= len(self.signal):
+                    t_signal_slice = self.signal[int(r_peak+self.t_min):int(r_peak+self.t_max)]
+                    t_peak = np.argmax(t_signal_slice, axis=0) + r_peak + self.t_min
+                    pt_peaks.append(int(t_peak))
+        return pt_peaks

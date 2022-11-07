@@ -1,10 +1,7 @@
-from matplotlib.pyplot import annotate
-import numpy as np
 import pandas as pd
 from sklearn.metrics import mean_absolute_error
 
 from utils import strlist_to_list, sync_peaks_all_records
-
 
 def flatten(l):
     return [item for sublist in l for item in sublist]
@@ -39,18 +36,28 @@ def calc_scores(true_peaks, auto_peaks, desc):
     print(f"Accuracy for {desc} t peaks: {accuracy(peaks_t_all, peaks_t_auto_all)}%")
 
 
-# # Comparing manual and auto detection from dataset
+# Comparing manual and auto detection from dataset
 dataset = pd.read_csv('data/qtdb.csv')
 true_peaks = strlist_to_list(dataset["True Peaks"])
-# auto_peaks = strlist_to_list(dataset["Auto Peaks"])
-# calc_scores(true_peaks, auto_peaks, desc="dataset's automatically determined waveform boundary measurements")
+auto_peaks = strlist_to_list(dataset["Auto Peaks"])
+calc_scores(true_peaks, auto_peaks, desc="dataset's automatically determined waveform boundary measurements")
 
-# # Comparing manual and windowed pt annotation
-# annotated_dataset = pd.read_csv('data/qtdb_annotations.csv')
-# auto_peaks = strlist_to_list(annotated_dataset["Windowed Peaks"])
-# calc_scores(true_peaks, auto_peaks, desc="window algorithm")
+# Comparing manual and windowed pt annotation
+annotated_dataset = pd.read_csv('data/qtdb_annotations.csv')
+auto_peaks = strlist_to_list(annotated_dataset["Windowed Peaks"])
+calc_scores(true_peaks, auto_peaks, desc="window algorithm")
 
 # Comparing manual and windowed pt annotation with adaptive ab
 annotated_dataset = pd.read_csv('data/qtdb_annotations.csv')
 auto_peaks = strlist_to_list(annotated_dataset["Windowed AB Peaks"])
 calc_scores(true_peaks, auto_peaks, desc="window method with best alpha/beta")
+
+# Comparing manual and windowed pt annotation with adaptive ab, coef
+annotated_dataset = pd.read_csv('data/qtdb_annotations.csv')
+auto_peaks = strlist_to_list(annotated_dataset["Windowed AB Coef Peaks"])
+calc_scores(true_peaks, auto_peaks, desc="window method with best alpha/beta and coef")
+
+# Comparing manual and windowed pt annotation with adaptive ab, coef and model predictions
+# annotated_dataset = pd.read_csv('data/qtdb_annotations.csv')
+# auto_peaks = strlist_to_list(annotated_dataset["Windowed AB Coef Model Peaks"])
+# calc_scores(true_peaks, auto_peaks, desc="window method with best alpha/beta, coef and model")

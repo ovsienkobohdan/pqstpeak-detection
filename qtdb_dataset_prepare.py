@@ -3,6 +3,7 @@ import os
 import wfdb
 import pandas as pd
 
+from utils import get_input_files
 QTDB_DATASET_PATH = "physionet.org/files/qtdb/1.0.0/"
 
 
@@ -54,10 +55,7 @@ def save_qtdb_tocsv(db_list):
     db.to_csv("data/qtdb.csv", index=False)
 
 
-input_files = []
-for f in os.listdir(QTDB_DATASET_PATH):
-    if os.path.isfile(os.path.join(QTDB_DATASET_PATH, f)) and not f.lower().startswith(".") and f.lower().endswith("q1c"):
-        input_files.append(f[:-4])
+input_files = get_input_files(QTDB_DATASET_PATH)
 
 true_peaks_all, true_peaks_all_auto, records_all, file_id = [], [], [], []
 for temp_file_index, temp_file in enumerate(input_files):
